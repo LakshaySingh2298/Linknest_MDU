@@ -21,6 +21,7 @@ const TenantsTab: React.FC<TenantsTabProps> = ({ refreshing }) => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [showDropdown, setShowDropdown] = useState<number | null>(null);
   const [stats, setStats] = useState({
@@ -64,13 +65,18 @@ const TenantsTab: React.FC<TenantsTabProps> = ({ refreshing }) => {
       const standardCount = tenantList.filter((t: Tenant) => t.plan_type === 'Standard').length;
       const basicCount = tenantList.filter((t: Tenant) => t.plan_type === 'Basic').length;
       const overdueCount = tenantList.filter((t: Tenant) => t.payment_status === 'overdue').length;
-      const totalUsage = tenantList.reduce((sum: number, t: Tenant) => sum + (t.data_usage || 0), 0);
+      
+      // Calculate total usage with proper null handling
+      const totalUsage = tenantList.reduce((sum: number, t: Tenant) => {
+        const usage = parseFloat(t.data_usage?.toString() || '0');
+        return sum + (isNaN(usage) ? 0 : usage);
+      }, 0);
       
       setStats({
         total: tenantList.length,
         online: onlineCount,
-        occupancyRate: tenantList.length > 0 ? Math.round((tenantList.length / 100) * 100) : 0,
-        avgUsage: tenantList.length > 0 ? totalUsage / tenantList.length : 0,
+        occupancyRate: tenantList.length > 0 ? Math.round((onlineCount / tenantList.length) * 100) : 0,
+        avgUsage: tenantList.length > 0 ? (totalUsage / tenantList.length) : 0,
         premium: premiumCount,
         standard: standardCount,
         basic: basicCount,
@@ -282,7 +288,7 @@ const TenantsTab: React.FC<TenantsTabProps> = ({ refreshing }) => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Avg. Usage</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.avgUsage.toFixed(1)} GB</p>
+              <p className="text-2xl font-bold text-gray-900">{(isNaN(stats.avgUsage) ? 0 : stats.avgUsage).toFixed(1)} GB</p>
             </div>
             <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
               <span className="text-purple-600 font-bold">GB</span>
@@ -426,12 +432,12 @@ const TenantsTab: React.FC<TenantsTabProps> = ({ refreshing }) => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="w-32">
                           <div className="flex items-center justify-between text-sm text-gray-900 mb-1">
-                            <span>{Number(tenant.data_usage).toFixed(1)} GB</span>
+                            <span>{(parseFloat(tenant.data_usage?.toString() || '0') || 0).toFixed(1)} GB</span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
                             <div
-                              className={`h-2 rounded-full ${getUsageProgressColor(Number(tenant.data_usage))}`}
-                              style={{ width: `${Math.min((Number(tenant.data_usage) / 100) * 100, 100)}%` }}
+                              className={`h-2 rounded-full ${getUsageProgressColor(parseFloat(tenant.data_usage?.toString() || '0') || 0)}`}
+                              style={{ width: `${Math.min(((parseFloat(tenant.data_usage?.toString() || '0') || 0) / 100) * 100, 100)}%` }}
                             ></div>
                           </div>
                         </div>
@@ -464,6 +470,7 @@ const TenantsTab: React.FC<TenantsTabProps> = ({ refreshing }) => {
                               <button
                                 onClick={() => {
                                   setSelectedTenant(tenant);
+                                  setShowViewModal(true);
                                   setShowDropdown(null);
                                 }}
                                 className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
@@ -522,6 +529,100 @@ const TenantsTab: React.FC<TenantsTabProps> = ({ refreshing }) => {
           }}
           onSubmit={handleEditTenant}
         />
+      )}
+
+      {showViewModal && selectedTenant && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold">Tenant Details</h2>
+              <button
+                onClick={() => {
+                  setShowViewModal(false);
+                  setSelectedTenant(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-lg font-medium mb-4">Personal Information</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Name</label>
+                    <p className="text-gray-900">{selectedTenant.name}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Email</label>
+                    <p className="text-gray-900">{selectedTenant.email}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Phone</label>
+                    <p className="text-gray-900">{selectedTenant.phone}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Unit Number</label>
+                    <p className="text-gray-900">{selectedTenant.unit_number}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-medium mb-4">Plan & Usage</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Plan Type</label>
+                    <p className="text-gray-900 capitalize">{selectedTenant.plan_type}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Data Usage</label>
+                    <p className="text-gray-900">{Number(selectedTenant.data_usage).toFixed(2)} GB</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Connection Status</label>
+                    <p className={`capitalize ${selectedTenant.connection_status === 'online' ? 'text-green-600' : 'text-gray-500'}`}>
+                      {selectedTenant.connection_status}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Current Bill</label>
+                    <p className="text-gray-900">{formatCurrency(Number(selectedTenant.current_bill))}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Payment Status</label>
+                    <p className={`capitalize ${selectedTenant.payment_status === 'current' ? 'text-green-600' : selectedTenant.payment_status === 'pending' ? 'text-yellow-600' : 'text-red-600'}`}>
+                      {selectedTenant.payment_status}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowViewModal(false);
+                  setShowEditModal(true);
+                }}
+                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+              >
+                Edit Tenant
+              </button>
+              <button
+                onClick={() => {
+                  setShowViewModal(false);
+                  setSelectedTenant(null);
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

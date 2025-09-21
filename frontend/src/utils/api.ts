@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const API_BASE_URL = '/api';
+// Use the current host for API calls to preserve client IP
+const API_BASE_URL = import.meta.env.VITE_API_URL || 
+  (window.location.hostname === 'localhost' 
+    ? 'http://localhost:3000/api' 
+    : `http://${window.location.hostname}:3000/api`);
 
 const api = axios.create({
   baseURL: API_BASE_URL,

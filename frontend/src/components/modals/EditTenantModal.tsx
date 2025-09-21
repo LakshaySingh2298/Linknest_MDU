@@ -51,19 +51,63 @@ const EditTenantModal: React.FC<EditTenantModalProps> = ({ tenant, onClose, onSu
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      style={{ 
+        position: 'fixed', 
+        top: 0, 
+        left: 0, 
+        right: 0, 
+        bottom: 0, 
+        backgroundColor: 'rgba(0,0,0,0.5)', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        zIndex: 9999 
+      }}
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+        style={{
+          backgroundColor: 'white',
+          borderRadius: '12px',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          maxWidth: '28rem',
+          width: '100%',
+          maxHeight: '90vh',
+          overflowY: 'auto'
+        }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Edit Tenant</h2>
+        <div 
+          className="flex items-center justify-between p-6 border-b border-gray-200"
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between', 
+            padding: '1.5rem', 
+            borderBottom: '1px solid #e5e7eb' 
+          }}
+        >
+          <h2 
+            className="text-xl font-semibold text-gray-900"
+            style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827' }}
+          >
+            Edit Tenant
+          </h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            style={{ 
+              padding: '0.5rem', 
+              borderRadius: '0.5rem', 
+              border: 'none', 
+              backgroundColor: 'transparent',
+              cursor: 'pointer'
+            }}
           >
             <X className="w-5 h-5 text-gray-500" />
           </button>
@@ -75,8 +119,8 @@ const EditTenantModal: React.FC<EditTenantModalProps> = ({ tenant, onClose, onSu
           <div className="space-y-1 text-sm text-gray-600">
             <p>ID: #{tenant.id}</p>
             <p>Status: {tenant.connection_status}</p>
-            <p>Current Usage: {tenant.data_usage.toFixed(1)} GB</p>
-            <p>Current Bill: ₹{tenant.current_bill}</p>
+            <p>Current Usage: {(parseFloat(tenant.data_usage?.toString() || '0') || 0).toFixed(1)} GB</p>
+            <p>Current Bill: ₹{(parseFloat(tenant.current_bill?.toString() || '0') || 0).toFixed(2)}</p>
           </div>
         </div>
 
@@ -164,7 +208,7 @@ const EditTenantModal: React.FC<EditTenantModalProps> = ({ tenant, onClose, onSu
             <select
               className="input"
               value={formData.plan_type}
-              onChange={(e) => setFormData({ ...formData, plan_type: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, plan_type: e.target.value as 'Basic' | 'Standard' | 'Premium' })}
             >
               <option value="Basic">Basic (25 Mbps - ₹5/GB)</option>
               <option value="Standard">Standard (50 Mbps - ₹10/GB)</option>
